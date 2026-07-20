@@ -1,16 +1,17 @@
 <script setup>
 import { ref, computed, nextTick } from 'vue'
-import { buildWordModeSegments } from '../composables/useTextReveal'
+import { buildSegments } from '../composables/useTextReveal'
+
+const props = defineProps({
+  mode: { type: String, required: true },
+})
 
 const text = ref('')
 const textareaRef = ref(null)
 const overlayRef = ref(null)
 
-const segments = computed(() => buildWordModeSegments(text.value))
+const segments = computed(() => buildSegments(text.value, props.mode))
 
-// o textarea de verdade fica transparente (o usuario nao ve o texto
-// nele), quem mostra o texto "de fato" e a div por cima (overlay).
-// isso evita eu ter que reimplementar cursor/selecao/backspace na mao.
 function syncScroll() {
   if (!overlayRef.value || !textareaRef.value) return
   overlayRef.value.scrollTop = textareaRef.value.scrollTop
@@ -51,7 +52,7 @@ async function onInput() {
   width: 100%;
   max-width: 700px;
   height: 420px;
-  margin: 2rem auto;
+  margin: 1.5rem auto;
   font-size: 1.25rem;
   line-height: 1.8;
 }
