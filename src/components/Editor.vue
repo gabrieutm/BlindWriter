@@ -1,16 +1,17 @@
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { buildSegments } from '../composables/useTextReveal'
 
 const props = defineProps({
   mode: { type: String, required: true },
+  modelValue: { type: String, required: true }, // conteudo da pagina atual
 })
+const emit = defineEmits(['update:modelValue', 'break-page'])
 
-const text = ref('')
 const textareaRef = ref(null)
 const overlayRef = ref(null)
 
-const segments = computed(() => buildSegments(text.value, props.mode))
+const segments = computed(() => buildSegments(props.modelValue, props.mode))
 
 function syncScroll() {
   if (!overlayRef.value || !textareaRef.value) return
@@ -18,10 +19,34 @@ function syncScroll() {
   overlayRef.value.scrollLeft = textareaRef.value.scrollLeft
 }
 
-async function onInput() {
+async function onInput(e) {
+  emit('update:modelValue', e.target.value)
   await nextTick()
   syncScroll()
 }
+
+function onKeydown(e) {
+  // Ctrl+Enter (ou Cmd+Enter no mac) = quebra de pagina manual
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault()
+    emit('break-page')
+  }
+}
+
+// sempre que troca de pagina, o textarea precisa refletir o valor
+// novo (o v-model comum ja resolveria isso, mas como aqui eu
+// controlo o value manualmente via onInput, preciso sincronizar
+// na mao quando o modelValue muda "de fora" - ex: trocou de pagina)
+watch(
+  () => props.modelValue,
+  async (newVal) => {
+    if (textareaRef.value && textareaRef.value.value !== newVal) {
+      textareaRef.value.value = newVal
+      await nextTick()
+      syncScroll()
+    }
+  }
+)
 </script>
 
 <template>
@@ -36,12 +61,13 @@ async function onInput() {
     </div>
     <textarea
       ref="textareaRef"
-      v-model="text"
       class="input-layer"
       spellcheck="false"
-      placeholder="Comece a escrever..."
+      placeholder="Comece a escrever... (Ctrl+Enter para nova pagina)"
+      :value="modelValue"
       @scroll="syncScroll"
       @input="onInput"
+      @keydown="onKeydown"
     ></textarea>
   </div>
 </template>
