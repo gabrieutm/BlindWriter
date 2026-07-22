@@ -11,8 +11,10 @@ function makePage() {
   return { id: nextId++, content: '' }
 }
 
-export function usePages() {
-  const pages = ref([makePage()])
+// Adicionei loadPages() porque agora as paginas podem vir de um
+// rascunho carregado do localStorage, nao so criadas do zero.
+export function usePages(initialPages) {
+  const pages = ref(initialPages && initialPages.length ? initialPages : [makePage()])
   const currentPageIndex = ref(0)
 
   const currentPage = computed(() => pages.value[currentPageIndex.value])
@@ -32,6 +34,11 @@ export function usePages() {
     pages.value[currentPageIndex.value].content = content
   }
 
+  function loadPages(newPages) {
+    pages.value = newPages && newPages.length ? newPages : [makePage()]
+    currentPageIndex.value = 0
+  }
+
   return {
     pages,
     currentPageIndex,
@@ -39,5 +46,6 @@ export function usePages() {
     addPage,
     goToPage,
     updateCurrentPageContent,
+    loadPages,
   }
 }
